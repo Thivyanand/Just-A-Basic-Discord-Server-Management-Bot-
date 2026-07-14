@@ -7,6 +7,8 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+load_dotenv()
+
 from config import settings
 
 
@@ -46,8 +48,6 @@ class ManagementBot(commands.Bot):
 
 
 async def main() -> None:
-    load_dotenv()
-
     token = settings.discord_token
     if not token:
         raise RuntimeError("DISCORD_TOKEN is not set.")

@@ -5,9 +5,10 @@ A small Python Discord bot built with `discord.py` for server moderation and man
 ## Features
 
 - Slash commands for moderation and server management
-- `ping`, `serverinfo`, and `userinfo`
+- `help`, `ping`, `serverinfo`, and `userinfo`
 - `purge`, `kick`, `ban`, `unban`, `timeout`, and `untimeout`
-- `slowmode`, `lock`, and `unlock`
+- `slowmode`, `lock`, `unlock`, `topic`, `renamechannel`, `createchannel`, and `deletechannel`
+- `nick`, `roleadd`, `roleremove`, `createrole`, and `deleterole`
 - `.env`-based configuration
 - GitHub Actions workflow for basic validation
 
