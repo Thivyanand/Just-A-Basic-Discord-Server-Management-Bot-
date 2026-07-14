@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
+from pathlib import Path
+from typing import Any
 
 import discord
 from discord import app_commands
@@ -10,6 +13,8 @@ from discord.ext import commands
 class Management(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
+        self._triggers_path = Path("triggers.json")
+        self._triggers = self._load_triggers()
 
     @app_commands.command(name="help", description="Show the available management commands.")
     async def help(self, interaction: discord.Interaction) -> None:
@@ -261,6 +266,69 @@ class Management(commands.Cog):
     async def deleterole(self, interaction: discord.Interaction, role: discord.Role) -> None:
         await role.delete()
         await interaction.response.send_message(f"Deleted {role.name}.", ephemeral=True)
+
+    # --- Trigger management ---
+    def _load_triggers(self) -> dict[str, Any]:
+        if not self._triggers_path.exists():
+            return {}
+        try:
+            return json.loads(self._triggers_path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    def _save_triggers(self) -> None:
+        self._triggers_path.write_text(json.dumps(self._triggers, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    trigger = app_commands.Group(name="trigger", description="Manage message triggers")
+
+    @trigger.command(name="add", description="Add a message trigger: replies when a message matches.")
+    @app_commands.describe(msg="Message text to trigger on (exact match)", reply="Reply text")
+    async def trigger_add(self, interaction: discord.Interaction, msg: str, reply: str) -> None:
+        guild_id = str(interaction.guild.id) if interaction.guild else "dm"
+        guild_triggers = self._triggers.setdefault(guild_id, [])
+        guild_triggers.append({"msg": msg, "reply": reply})
+        self._save_triggers()
+        await interaction.response.send_message(f"Added trigger for '{msg}' -> '{reply}'.", ephemeral=True)
+
+    @trigger.command(name="remove", description="Remove a trigger by exact trigger message.")
+    @app_commands.describe(msg="Trigger message to remove")
+    async def trigger_remove(self, interaction: discord.Interaction, msg: str) -> None:
+        guild_id = str(interaction.guild.id) if interaction.guild else "dm"
+        guild_triggers = self._triggers.get(guild_id, [])
+        before = len(guild_triggers)
+        guild_triggers = [t for t in guild_triggers if t.get("msg") != msg]
+        self._triggers[guild_id] = guild_triggers
+        self._save_triggers()
+        removed = before - len(guild_triggers)
+        await interaction.response.send_message(f"Removed {removed} triggers for '{msg}'.", ephemeral=True)
+
+    @trigger.command(name="list", description="List triggers for this server.")
+    async def trigger_list(self, interaction: discord.Interaction) -> None:
+        guild_id = str(interaction.guild.id) if interaction.guild else "dm"
+        guild_triggers = self._triggers.get(guild_id, [])
+        if not guild_triggers:
+            await interaction.response.send_message("No triggers configured for this server.", ephemeral=True)
+            return
+
+        lines = [f"- '{t.get('msg')}' => '{t.get('reply')}'" for t in guild_triggers]
+        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message) -> None:
+        # Ignore bots and messages without content
+        if message.author.bot or not message.content:
+            return
+
+        guild_id = str(message.guild.id) if message.guild else "dm"
+        guild_triggers = self._triggers.get(guild_id, [])
+        content = message.content.strip()
+        for t in guild_triggers:
+            if content == (t.get("msg") or ""):
+                try:
+                    await message.channel.send(t.get("reply") or "")
+                except Exception:
+                    pass
+                break
 
 
 async def setup(bot: commands.Bot) -> None:
