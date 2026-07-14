@@ -11,6 +11,10 @@ A small Python Discord bot built with `discord.py` for server moderation and man
 - `nick`, `roleadd`, `roleremove`, `createrole`, and `deleterole`
 - `.env`-based configuration
 - GitHub Actions workflow for basic validation
+ - Message triggers: add simple reply triggers via `/trigger add msg:<text> reply:<text>`
+ - Trigger management commands: `/trigger list` and `/trigger remove msg:<text>`
+ - Triggers are persisted to `triggers.json` in the bot working directory
+ - Message content intent enabled (bot reads message content to match triggers)
 
 ## Requirements
 
@@ -39,6 +43,11 @@ python bot.py
 ```
 
 If you set `DISCORD_GUILD_ID` or `COMMAND_SYNC_GUILD_ID`, slash commands sync to that server immediately. Otherwise they sync globally.
+
+Notes about triggers and intents
+ - Restart the bot after changes; slash commands sync on startup.
+ - Enable the "Message Content Intent" for your bot in the Discord Developer Portal so the bot can read message content to match triggers.
+ - `triggers.json` will be created in the same directory as the bot when you add triggers with `/trigger add`.
 
 ## Invite URL
 
